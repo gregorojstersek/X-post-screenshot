@@ -75,7 +75,7 @@ TWEET_HTML_TEMPLATE = """<!DOCTYPE html>
     color: #0f1419;
     line-height: 1.3;
     word-break: break-word;
-    margin-bottom: 20px;
+    margin-bottom: 36px;
   }}
   .tweet-text p:last-child {{
     margin-bottom: 0;
