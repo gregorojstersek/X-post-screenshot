@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X Post Screenshot</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e7e9ea;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 40px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    header p {
+      margin-top: 8px;
+      color: #71767b;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #16181c;
+      border: 1px solid #2f3336;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #202327;
+      border: 1px solid #2f3336;
+      border-radius: 9999px;
+      color: #e7e9ea;
+      font-size: 0.95rem;
+      padding: 12px 18px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]::placeholder { color: #71767b; }
+    input[type="text"]:focus { border-color: #1d9bf0; }
+
+    button#capture-btn {
+      background: #1d9bf0;
+      border: none;
+      border-radius: 9999px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px 22px;
+      transition: background 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    button#capture-btn:hover { background: #1a8cd8; }
+    button#capture-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      margin-top: 18px;
+      font-size: 0.9rem;
+      color: #71767b;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    .status.error { color: #f4212e; }
+
+    .result {
+      margin-top: 28px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .result img {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid #2f3336;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .download-btn {
+      background: transparent;
+      border: 1px solid #2f3336;
+      border-radius: 9999px;
+      color: #e7e9ea;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .download-btn:hover { background: #202327; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>X Post Screenshot</h1>
+    <p>Paste an X (Twitter) post URL to capture a clean screenshot.</p>
+  </header>
+
+  <div class="card">
+    <div class="input-row">
+      <input
+        type="text"
+        id="url-input"
+        placeholder="https://x.com/user/status/..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="capture-btn">Capture</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="result" id="result">
+      <img id="screenshot-img" src="" alt="Tweet screenshot" />
+      <a id="download-link" class="download-btn" download="x-post.png">Download PNG</a>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('capture-btn');
+    const input = document.getElementById('url-input');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+    const img = document.getElementById('screenshot-img');
+    const dlLink = document.getElementById('download-link');
+
+    function setStatus(msg, isError = false) {
+      status.textContent = msg;
+      status.className = 'status' + (isError ? ' error' : '');
+    }
+
+    async function capture() {
+      const url = input.value.trim();
+      if (!url) { setStatus('Please enter a URL.', true); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Capturing…';
+      result.style.display = 'none';
+      setStatus('Opening the post in a headless browser…');
+
+      try {
+        const res = await fetch('/screenshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          setStatus(data.error || 'Something went wrong.', true);
+          return;
+        }
+
+        const imgUrl = `/screenshots/${data.filename}`;
+        img.src = imgUrl;
+        dlLink.href = imgUrl;
+        result.style.display = 'flex';
+        setStatus('Screenshot captured!');
+      } catch (err) {
+        setStatus('Network error — is the server running?', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Capture';
+      }
+    }
+
+    btn.addEventListener('click', capture);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') capture(); });
+  </script>
+</body>
+</html>
