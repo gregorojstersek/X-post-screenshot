@@ -98,7 +98,7 @@ TWEET_HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 CUSTOM_AVATARS = {
-    "gregorojstersek": "/Users/gregorojstersek/Gregor/2-Projects/1. Selfbranding/gregor pictures 2024/gregor-1000x1000-round.png",
+    "gregorojstersek": os.path.join(os.path.dirname(__file__), "assets", "gregorojstersek.png"),
 }
 
 def local_image_data_uri(path: str) -> str:
